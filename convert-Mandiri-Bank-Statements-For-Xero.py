@@ -40,8 +40,7 @@ for _, _, files in os.walk(pathToCSVs):
 			}
 			df_new = pd.DataFrame(frame)
 			outputFileName = str(bank_account_number) + '.csv'
-			df_new.to_csv(outputFileName, index=True)
-			print("============================")
+			df_new.to_csv(outputFileName, index=False)
 
 
 
