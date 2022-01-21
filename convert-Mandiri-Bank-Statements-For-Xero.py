@@ -24,6 +24,8 @@ for _, _, files in os.walk(pathToCSVs):
 			credit_series = df.iloc[:,8] # credit Column
 
 			# Concatenating description 1 and 2
+			description_1_series = description_1_series.fillna('') # replace NaN with empty space.
+			description_2_series = description_2_series.fillna('') # replace NaN with empty space.
 			full_description_series = description_1_series + description_2_series
 			full_description_series = full_description_series.str.strip()
 			
@@ -41,7 +43,6 @@ for _, _, files in os.walk(pathToCSVs):
 			df_new = pd.DataFrame(frame)
 			outputFileName = str(bank_account_number) + '.csv'
 			df_new.to_csv(outputFileName, index=False)
-
 
 
 #######################################################
