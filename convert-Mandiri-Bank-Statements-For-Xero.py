@@ -18,6 +18,8 @@ for _, _, files in os.walk(pathToCSVs):
 			df = pd.read_csv(pathToCSVs + filename, sep=';')
 			bank_account_number = df.iloc[0,0] #iloc[row,column]
 			date_series = df.iloc[:,2] # Date Column
+			date_series = pd.to_datetime(date_series) # Convert the series to datetime format
+			date_series = date_series.dt.date # Extract the date component
 			full_description_series = df.iloc[:,3] # description_1 Column
 			full_description_series = full_description_series.str.replace(r'\s+', ' ', regex=True) #Replace consecutive spaces with a single space in each element
 			credit_series = df.iloc[:,5] # credit Column
