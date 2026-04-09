@@ -1,33 +1,40 @@
-import re
-from re import sub
-from decimal import Decimal
-import pdfplumber
 import pandas as pd
-from collections import namedtuple
-import datetime
 import os
-from enum import Enum
-from decimal import Decimal
 
-pathToPdfs = os.getcwd()+"/dropPdfHere/"
 pathToCSVs = os.getcwd()+"/dropCSVHere/"
 
 for _, _, files in os.walk(pathToCSVs):
 	for filename in files:
 		if '.csv' in filename:
-			df = pd.read_csv(pathToCSVs + filename, sep=';')
-			bank_account_number = df.iloc[0,0] #iloc[row,column]
-			date_series = df.iloc[:,2] # Date Column
-			date_series = pd.to_datetime(date_series) # Convert the series to datetime format
-			date_series = date_series.dt.date # Extract the date component
-			full_description_series = df.iloc[:,3] # description_1 Column
-			full_description_series = full_description_series.str.replace(r'\s+', ' ', regex=True) #Replace consecutive spaces with a single space in each element
-			credit_series = df.iloc[:,5] # credit Column
-			debit_series = df.iloc[:,6] # debit Column
-			
-			# Getting the Nett Amount Series
-			debit_series = debit_series.replace(',','', regex=True).astype('float')
-			credit_series = credit_series.replace(',','', regex=True).astype('float')
+			# Detect format by checking if the file uses semicolons
+			with open(pathToCSVs + filename, 'r') as f:
+				header = f.readline()
+
+			if ';' in header:
+				# Old Mandiri format: semicolon-separated
+				# Columns: AccountNo;Ccy;PostDate;Remarks;AdditionalDesc;Credit Amount;Debit Amount;Close Balance
+				df = pd.read_csv(pathToCSVs + filename, sep=';')
+				bank_account_number = df.iloc[0,0]
+				date_series = pd.to_datetime(df['PostDate']).dt.date
+				full_description_series = df['Remarks'].fillna('').astype(str).str.replace(r'\s+', ' ', regex=True).str.strip()
+				debit_series = df['Debit Amount'].astype(str).str.replace(',','', regex=False).astype('float')
+				credit_series = df['Credit Amount'].astype(str).str.replace(',','', regex=False).astype('float')
+			else:
+				# New Mandiri format: comma-separated
+				# Columns: Account No,Date,Val. Date,Transaction Code,Description,Description,Reference No.,Debit,Credit
+				df = pd.read_csv(pathToCSVs + filename)
+				bank_account_number = df.iloc[0,0]
+				date_series = pd.to_datetime(df['Date'], dayfirst=True).dt.date
+
+				# Combine the two Description columns (pandas renames duplicate to Description.1)
+				desc_1 = df['Description'].fillna('').astype(str).str.strip()
+				desc_2 = df['Description.1'].fillna('').astype(str).str.strip()
+				full_description_series = (desc_1 + ' ' + desc_2).str.replace(r'\s+', ' ', regex=True).str.strip()
+
+				debit_series = df['Debit'].astype(str).str.replace(',','', regex=False).astype('float')
+				credit_series = df['Credit'].astype(str).str.replace(',','', regex=False).astype('float')
+
+			# Amount: credit is positive, debit is negative
 			amount_series = credit_series.subtract(debit_series)
 
 			# Making new Data Frame
@@ -39,7 +46,7 @@ for _, _, files in os.walk(pathToCSVs):
 			df_new = pd.DataFrame(frame)
 			outputFileName = str(bank_account_number) + '.csv'
 			df_new.to_csv(outputFileName, index=False)
-			print (outputFileName + " has been created.")
+			print(outputFileName + " has been created.")
 
 
 #### OLD MANDIRI CSV ####
